@@ -1,13 +1,85 @@
 from urllib import request
 from flask import Flask,render_template,url_for,jsonify,request
-from flask_wtf import FlaskForm
+# from flask_wtf import FlaskForm
 from wtforms import TextAreaField,SubmitField
 import pandas as pd
 import time
 app=Flask(__name__)
 #Spell Checker's code
 import time
+import enchant
+from transformers import AutoTokenizer, AutoModelForMaskedLM,pipeline,BertForMaskedLM,BertTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("Rajan/NepaliBERT")
+vocab_file_dir = './NepaliBERT/' 
+tokenizer = BertTokenizer.from_pretrained(vocab_file_dir,
+                                        strip_accents=False,
+                                         clean_text=False )
+model = BertForMaskedLM.from_pretrained('./NepaliBERT')
+fill_mask = pipeline(
+    "fill-mask",
+    model=model,
+    tokenizer=tokenizer
+)
+import threading
 corpus = []
+threads=[]
+text="म भात खान्छु । हामी भात खान्छौं । तँ भात खान्छस् । तपाईं भात खानुहुन्छ । म विध्यालय जान्छु । हामी विध्यालय जान्छौँ । म घुम्न जान्छु । हामी घुम्न जान्छौँ । राम भात खान्छ । तिमी पढ्न जाउ । स्पष्ट नेपालीले काम गर्छ । "
+list1=text.split("।")
+list2=[]
+for _ in range(len(list1)-1):
+  temp2=list1[_].split()
+  # print(temp2)
+  temp_tup=(temp2[0],temp2[-1][-1])
+  list2.append(temp_tup)
+
+def check_rule(str1):
+  temp_list1=str1.split("।")
+  temp_list2=[]
+  err=[]
+  for _ in range(len(temp_list1)-1):
+    temp2=temp_list1[_].split()
+    temp_tup=(temp2[0],temp2[-1][-1])
+    temp_list2.append(temp_tup)
+  for _ in temp_list2:
+    # print(_)
+    if _ in list2:
+      continue
+    else:
+      err.append(_)
+  return err
+
+def tri_return_tuples(list1,x=0):
+  temp_list={}
+  pp=0
+  for _ in range(0,len(list1)-2,1):
+    if pp!=0:
+      pp-=1
+      continue
+    temp21=(list1[_].split("\t")[x],list1[_+1].split("\t")[x],list1[_+2].split("\t")[x])
+    if temp21[1]=="YF" or temp21[1].strip()=="।":# or temp21[1]=="YF" or temp21[1]=="।":
+      pp=1
+      continue
+      temp21=(list1[_+1].split("\t")[x],list1[_+2].split("\t")[x],list1[_+3].split("\t")[x])
+      # print(temp21[0])
+      pp=1
+    temp2=temp21
+    if temp2 not in temp_list:
+      temp_list[temp2]=1
+    else:
+      temp_list[temp2]+=1      
+    # temp_list.append(temp2)
+  return temp_list
+@app.before_first_request
+
+#rulee base approach
+
+
+##tri gram
+
+
+
+##
 
 def loadCorpus():
     #function to load the dictionary/corpus and store it in a global list
@@ -58,17 +130,17 @@ def getCorrectWord(word):
     return correct_word
 def processInput(arg1):
     inputtext=arg1
+    print("processing spelling")
     words=inputtext.strip().split()
-    output=''
-     
-    for word in words:
-            
-                if word not in corpus :
-                    corrected= getCorrectWord(word)
-                    output = output + corrected + ' '
-                else:
-                    output = output + word + ' '
-    print(output)
+    output=''     
+    for word in words:            
+      if word in corpus :
+        output = output + word + ' '
+          
+      else:
+        corrected= getCorrectWord(word)
+        output = output + corrected + ' '          
+    return(output)
 
 #Spell Cheker ends
 
@@ -98,7 +170,7 @@ del temp1
 del temp0
 del temp2
 del temp3
-print(len(all_files_list))
+# print(len(all_files_list))
 def return_tuples(list1):
   temp_list=[]
   # print(len(list1))
@@ -218,7 +290,7 @@ emission_counts=emission_count(get_tuples)
 create_transition_matrix(0,tag_with_count,get_transition_count)
 def create_emission_matrix(constant_val,tags_count,emission_count_data,vocab):
   all_tags=list(tags_count.keys())
-  print(all_tags[:20])
+  # print(all_tags[:20])
   B=np.zeros((len(all_tags),len(emission_count_data)))
   # B_temp=pd.DataFrame(B,index=all_tags,columns=)
   for i in range(len(all_tags)):
@@ -252,7 +324,7 @@ def Viterbi(sentence_list,state):
       state_p=transition_p*emission_p
       # print(emission_p)
       p.append(state_p)
-    print(max(p))
+    # print(max(p))
   return list(freqs[words].keys())[p.index(max(p))]
 
 def sentence_checker(sents):
@@ -314,7 +386,7 @@ def pos_tag(texts):
                 temp_tuple=(each_word,key_list[value_list.index(max(value_list))])
                 temp_tagging.append(temp_tuple)
                 # print(temp_tuple)
-                print("temp tuple 1st  ",temp_tuple,type(temp_tuple[1]))
+                # print("temp tuple 1st  ",temp_tuple,type(temp_tuple[1]))#yo 11th ma milako
                 count+=1
             else:
                 import nltk
@@ -350,6 +422,13 @@ def pos_tag(texts):
     return tagging
 
 
+def remove_pun(my_str):
+  punctuations = '''!()[]{};:'"\,<>./?@#$%^&*_~'''
+  no_punct = ""
+  for char in my_str:
+    if char not in punctuations:
+        no_punct = no_punct + char
+  return (no_punct)
 
 def return_probab(pos_list):
   global temp_A
@@ -370,16 +449,13 @@ def return_probab(pos_list):
       # print(y[x],",",y[x+1],temp_calc,"   ",A_sub.iloc[list22.index(y[x]),list22.index(y[x+1])]," ",A_sub.iloc[list22.index(y[x]),list22.index(y[x+1])]==temp_calc)
       dict_probab[key1]=temp_calc
       probab.append(temp_calc)
-  print(dict_probab)
+  # print(dict_probab)#yo 11th ma milako
   return dict_probab
   # print(max(probab))
 
   # print(pos_list)
 
-del all_files_list
-del temp1_a
-del get_only_text
-del words_name
+
 
 def sec(sents_lists):
   opening=["'","\"","[","(","{"]
@@ -399,39 +475,239 @@ def sec(sents_lists):
   return(check)
 
 
+del temp1_a
+del get_only_text
+del words_name
+##rule
+# def tri_return_tuples(list1,x=0):
+#   temp_list={}
+#   pp=0
+#   for _ in range(0,len(list1)-2,1):
+#     # if pp==1:
+#     #   pp=0
+#     #   continue
+#     temp21=(list1[_].split("\t")[x],list1[_+1].split("\t")[x],list1[_+2].split("\t")[x])
+#     if temp21[0]=="YF" or temp21[0]=="।" or temp21[1]=="YF" or temp21[1]=="।":
+#       continue
+#       temp21=(list1[_+1].split("\t")[x],list1[_+2].split("\t")[x],list1[_+3].split("\t")[x])
+#       # print(temp21[0])
+#       pp=1
+#     temp2=temp21
+#     if temp2 not in temp_list:
+#       temp_list[temp2]=1
+#     else:
+#       temp_list[temp2]+=1      
+#     # temp_list.append(temp2)
+#   return temp_list
+get_tuples1=tri_return_tuples(all_files_list)
+get_tuples2=tri_return_tuples(all_files_list,1)
+def check_trigrams(sents1):
+  global get_tuples1
+  # print(sents1)#yo 11th ma milako
+  temp12=sents1.split()
+  temp_dict=[]
+  for _ in range(0,len(temp12)-2):
+    key=(temp12[_],temp12[_+1],temp12[_+2])
+    if key in get_tuples1:
+      pass
+      # print(key,get_tuples1[key])#yo 11th ma milako
+    else:
+      temp_dict.append(key)
+      # print("Not found: ",key)#yo 11th ma milako
+  return temp_dict
 
+##masking
+sum12=[int(a) for a in get_tuples2.values()]
+sum11=0
+for _ in sum12:
+  sum11+=_
+def check_tri(temp_list):
+  temp_list.insert(0,("--s--","--s--"))
+  temp_list.append(("।","YF"))
+  temp_list2=[]
+  global sum11
+  d={}
+  k={}
+  for _ in range(len(temp_list)-2):
+    key1=(temp_list[_][1],temp_list[_+1][1],temp_list[_+2][1])
+    key2=(temp_list[_][0],temp_list[_+1][0],temp_list[_+2][0])
+    key3=(temp_list[_][0]+"\t"+temp_list[_][1],temp_list[_+1][0]+"\t"+temp_list[_+1][1],temp_list[_+2][0]+"\t"+temp_list[_+2][1])
+    
+    # print(key1)
+    if key1 in get_tuples2.keys():
+      d[key1]=get_tuples2[key1]    
+    else:
+      d[key1]=0
+    if key2 in get_tuples1.keys():      
+      k[key3]=get_tuples1[key2]
+    else:
+      k[key3]=0
+  return d,k
+
+def return_verb_mask(tagging):
+  dict_temp={}
+  count=-1
+  count2=-1
+  for _ in tagging:
+    count+=1   
+    mask=""
+    text23=""
+    line_no=0
+    count2=0
+    for _1 in _:
+      count2+=1
+      if _1[1][:2]!="VV":
+        text23+=_1[0]+" "
+      else:
+        text23+="[MASK] "
+        mask=_1[0]
+    text23+="।"
+    # print(text23)
+    rrr=fill_mask(text23)
+    temp111=[ab["token_str"].strip() for ab in rrr]
+      # return mask,line_no
+    dict_temp[(count,count2,mask.strip())]=temp111       
+    # print(temp111,mask.strip() in temp111)#nov 11
+    if (mask.strip() in temp111)==True:
+      dict_temp[(count,count2,mask.strip())]=[mask]
+  return dict_temp
+
+
+##
+del all_files_list
+# del get_all_tags
 stop1=time.time()
 print(start,stop1," Time elapsed is : ",stop1-start)
-
+all_variables = dir()
+  
 
 @app.route("/")
-def index():
+def index():        
     return render_template("ajax.html",)
+
+@app.route("/spell_check",methods=["POST","GET"])
+def spell_check():
+  if request.method=="POST":
+    data=request.get_json(force=True)
+    input_movie_name1 = remove_pun(data['page_data'])
+    if(len(input_movie_name1)==0):
+      return jsonify("<span></span>")
+    print("Spell checking has started: ",input_movie_name1)
+    input_movie_name = input_movie_name1.split()
+
+    #load the personal word list dictionary
+    start=time.time()
+
+    #load the personal word list dictionary
+    movies_dict = enchant.PyPWL("D:/Spasta Nepali data+files/flask1/movies.txt")
+    temp_list=[]
+    index=-1
+    html1=""
+    #check if the word exists in the dictionary
+    for _ in input_movie_name:
+      index+=1
+      word_exists = movies_dict.check(_)
+      
+      # print("word exists: ", word_exists," ",_ )#yo 11th ma milako
+
+
+      if not word_exists:
+        temp_dict={}
+        #get suggestions for the input word if the word doesn't exist in the dictionary
+        suggestions = movies_dict.suggest(_)
+        temp_dict["index"]=index 
+        temp_dict["word"]=_      
+        temp_dict["suggestion"]=suggestions
+        temp_list.append(temp_dict)
+        temp_text=",".join(suggestions)
+        html1+=f"""<span class="incorrect_word" id=\"{_}\" onclick='correction(\"{temp_text}\",\"{_}\",\"{index}\");'>{_}</span> 
+        """#document.getElementById(\"mistakes\").innerHTML=\"{temp_text}\";
+      else:
+        html1+=f"""<span class='correct_word'>{_}</span>
+        """
+    # print(html1)
+    stop=time.time()
+    print("Spelling checking time",stop-start," Spell checking stopped")
+    return jsonify(html1)
+
+
 
 @app.route("/test_ajax1",methods=["POST","GET"])
 def testing():
     global temp_A
     if request.method=="POST":
+        start1=time.time()
         data2=request.get_json(force=True)
-        print(data2['page_data'])
+        # print(data2['page_data'])#yo 11th ma milako
         text21=data2['page_data']
+        stem1=""
+        
+        temp_list24=text21.split("।")
+        # for _ in text21.split():#yo 11th ma milako
+        #   temp33=stemmer(_)#yo 11th ma milako
+          # stem1+=temp33
+          # print(temp33)#yo 11th ma milako
+        # print(stem1)#yo 11th ma milako
         tagging=pos_tag(text21)
         
         get_pos=[]
-        print("Tagging",tagging)
+        # print("Tagging",tagging)#yo 11th ma milako
         for i in tagging:  
             get_pos.append(sentence_checker(i))
-        print(get_pos,type(get_pos))
-
+        # print(get_pos,type(get_pos))
         dict2=return_probab(get_pos)
+        print("Masking started")
+        verb1=return_verb_mask(tagging)#tagging thyo
+        print(verb1)
+        print(temp_list24)
+        temp33=""
+        for _ in verb1.keys():#10th nov
+          print(type(verb1[_]),[verb1[_]],_)#nov 11,tagging[_])#10th
+          # temp_list24[_[0]]=temp_list24[_[0]].replace(_[2],)
+          # if verb1[_]==list:
+          temp_text=",".join(verb1[_])
+            # temp_text
+          print("Verb is",verb1[_],"Temp text is :",temp_text," ",_[2])
+          temp33+=f"""<span class="incorrect_word" id=\"{_[2]}\" onmouseup='correction(\"{temp_text}\",\"{_[2]}\",\"{index}\");'>{_[2]}</span> 
+        """
+          # print(verb1[_],tagging[_[0]][_[1]-1])#10th nov
+        print("Masking ended")
         check_symbol=sec(tagging)
-        print(dict2)
-        probab=""
-        for _ in list(dict2.values()):
-          probab+=_+" , "
-        print(check_symbol)
-        processInput(text21)
-        return jsonify(probab)
+        # print(check_symbol)#yo 11th ma milako
+        # print(dict2)#yo 11th ma milako
+        # probab=""
+        # for _ in list(dict2.values()):
+        #   probab+=str(_)+" , "
+        # print(check_symbol)#yo 11th ma milako
+        text22=""
+        c1=0
+        temp_list2=text21.split()
+        # for _ in range(0,len(temp_list2)):  
+        #   # t1 = threading.Thread(target=processInput, args=(temp_list2[_],))
+        #   # t2 = threading.Thread(target=processInput, args=(temp_list2[_+1],))        
+        #   text22+=processInput(temp_list2[_])
+        # print(text22)
+        stop1=time.time()
+        text22=check_rule(text21)
+        # print(text22)#yo 11th ma milako
+        temp_list22=text21.split()
+        if(len(temp_list22)>0):
+          temp44=tri_return_tuples(temp_list22)
+          # print("Tri ",temp44)#yo 11th ma milako
+        for _ in list2:
+            # print(_[1])
+            if len(text22)>0:
+              # print(text22[0][0],_[0])
+              if text22[0][0]==_[0]:
+                temp33+=f"कृपया '{text22[0][0]}' कृयापदमा '{str( _[1])}' प्रयोग गर्नुहोस ।"
+                break
+        print(f"Index page load time {stop1-start1}")
+        list_temp=text21.split()
+        # for _ in range(len(list_temp)):
+        #   pass
+        # print(fill_mask(f"{text21} [MASK]"))
+        check_trigrams(text21)
+        return jsonify(temp33) #"त्रुटी  "+text22[0][1]+
 
 
 

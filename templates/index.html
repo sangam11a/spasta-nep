@@ -1,15 +1,114 @@
-{% extends 'layout.html' %}
-{%block content%}
-  <div class="container">
-    <form method="POST">
-        <fieldset class="form-group">
-          <div class="form-group">
-            {{form.texts}}
-          </div>
-          <div class="form-group">
-            {{form.submits}}
-          </div>
-        </fieldset>
-    </form>
-  </div>
-{%endblock%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spasta Nepali</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        textarea{
+            width:80vw;
+            height:80vh;
+            /* border-style:none; */
+            border-color:red;
+        }
+        .suggestions{
+            border-radius: 10%;
+            background:wheat;
+            color:red;
+        }
+        #mistakes{
+            color:red;
+            font-size:14;
+            font-weight:400;
+        }
+        .incorrect_word{
+            border-bottom:2px solid red;
+        }
+        #grid1{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+        }
+    </style>
+    <script>
+        function spell_check(event){
+            let x=event.key()
+            console.log(x)
+            if(x==" "){
+                spell_check1()
+            }
+        }
+        function spell_check1(){
+            console.log("spell")
+            var xml2 = new XMLHttpRequest();
+                xml2.open("POST","/spell_check",true); 
+                xml2.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+    
+                xml2.onload = function(){
+                    var dataReply = JSON.parse(this.responseText);
+                    document.getElementById("mistakes1").innerHTML=dataReply
+                    console.log(dataReply)
+                };//endfunction
+    
+                dataSend2= JSON.stringify({
+                    'page_data':document.getElementById("text1").value
+                });
+    
+                xml2.send(dataSend2);
+        }
+       window.onload=function (){
+        console.log(document.getElementById("mistakes"))
+       // document.getElementById("api_based")
+         //document.getElementsByClassName("textarea_unicode")[1].onkeyup=function(){
+           // alert("key presseda"+document.getElementsByClassName("textarea_unicode")[1].value)
+        //}
+            document.getElementById("text1").onkeyup = function() {
+            var xml = new XMLHttpRequest();
+            xml.open("POST","/test_ajax1",true); 
+            xml.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+
+            xml.onload = function(){
+                var dataReply = JSON.parse(this.responseText);
+                document.getElementById("mistakes").innerHTML=dataReply
+            };//endfunction
+
+            dataSend= JSON.stringify({
+                'page_data':document.getElementById("text1").value
+            });
+
+            xml.send(dataSend);
+            spell_check1()
+
+           
+        };
+       }
+    </script>
+</head>
+<body >
+    <div class="container">
+        <form action="" method="post">
+            <textarea name="text1" id="text1" id="text1" onpaste="spell_check1()" ></textarea>
+        </form>
+        
+    </div>
+    <input type="text" id="old_word">
+    <div id="grid1">
+       
+        <div style="background:rgb(255,245,255);min-height:40px;margin-bottom:5vh;margin-right:4px;">
+            <h3>Mistake1</h3>
+            <div id='mistakes1' >
+            
+            </div>
+        </div>
+        
+        
+       <div style="background:rgb(255,245,245);min-height:40px;margin-bottom:5vh;margin-right:4px;">
+        <h3>Mistake2</h3>
+        <div id="mistakes" >            
+            
+        </div>
+       </div>
+    </div>
+</body>
+</html>

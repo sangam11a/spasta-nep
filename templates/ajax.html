@@ -1,53 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spasta Nepali</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <style>
-        textarea{
-            width:80vw;
-            height:80vh;
-            /* border-style:none; */
-            border-color:red;
-        }
-    </style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Style.css') }}">
+    <title>स्पष्ट नेपाली</title>
     <script>
-       window.onload=function (){
-       // document.getElementById("api_based")
-         //document.getElementsByClassName("textarea_unicode")[1].onkeyup=function(){
-           // alert("key presseda"+document.getElementsByClassName("textarea_unicode")[1].value)
-        //}
-            document.getElementById("text1").onkeyup = function() {
-            var xml = new XMLHttpRequest();
-            xml.open("POST","/test_ajax1",true); 
-            xml.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      function edit_text(correct,old,edit,index){
+          document.getElementById(old).className="correct_word"
+          document.getElementById(old).innerText=correct
+          document.getElementById(old).id=correct
+          let a=document.getElementById("text1").value
+          a=a.replace(old,correct)
+          document.getElementById("text1").value=a
+          document.getElementById("mistakes").innerText=""
+      }
+      function correction(text12,old,index){
+          let list1=text12.split(",")
+          console.log(list1)
+          let text1=""
+          for(let i=0;i<list1.length;i++){
+              text1+="<button class=\"suggestions\" onclick=\"document.getElementById('old_word').value='"+list1[i]+"%^&"+old+"';edit_text('"+list1[i]+"','"+old+"','"+index+"');\">"+list1[i]+"</button>";
+          }
+          console.log(text1)
+          document.getElementById("mistakes").innerHTML=text1;
+      }
+      function spell_check(x){
+          console.log(x+" pressed")
+          
+          if(x==" "){
+              spell_check1()
+          }
+      }
+      function spell_check1(){
+          console.log("spell")
+          document.getElementById("mistakes1").innerHTML=""
+          var xml2 = new XMLHttpRequest();
+              xml2.open("POST","/spell_check",true); 
+              xml2.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+  
+              xml2.onload = function(){
+                  var dataReply = JSON.parse(this.responseText);
+                  document.getElementById("mistakes1").innerHTML=dataReply
+                  console.log(dataReply)
+              };//endfunction
+  
+              dataSend2= JSON.stringify({
+                  'page_data':document.getElementById("text1").value
+              });
+  
+              xml2.send(dataSend2);
+      }
+     window.onload=function (){
+     // document.getElementById("api_based")
+       //document.getElementsByClassName("textarea_unicode")[1].onkeyup=function(){
+         // alert("key presseda"+document.getElementsByClassName("textarea_unicode")[1].value)
+      //}
+          document.getElementById("text1").onkeyup = function() {
+          var xml = new XMLHttpRequest();
+          xml.open("POST","/test_ajax1",true); 
+          xml.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 
-            xml.onload = function(){
-                var dataReply = JSON.parse(this.responseText);
-                document.getElementById("demo").innerHTML=dataReply
-            };//endfunction
+          xml.onload = function(){
+              var dataReply = JSON.parse(this.responseText);
 
-            dataSend= JSON.stringify({
-                'page_data':document.getElementById("text1").value
-            });
+              document.getElementById("gec").innerHTML='<p style="color:rgb(14, 143, 113);margin-bottom: 0px; text-transform: uppercase;">Grammatical Error</p>'+dataReply;
+          };//endfunction
 
-            xml.send(dataSend);
-        };
-       }
-    </script>
-</head>
-<body >
+          dataSend= JSON.stringify({
+              'page_data':document.getElementById("text1").value
+          });
+
+          xml.send(dataSend);
+          spell_check1()
+
+         
+      };
+     }
+  </script>
+  </head>
+  <body>
+    <header class="header">
+      <h1 class="logo"><a href="#">स्पष्ट नेपाली</a></h1>
+        <ul class="main-nav">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Portfolio</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+    </header> 
+
+    <div class="main-container">
     <div class="container">
+      <h2>नेपाली व्याकरण परीक्षक</h2>
+     
+      <div  class="conatiner2"></div>
         <form action="" method="post">
-            <iframe width="100%" height="400" frameborder="0" border="no" scrolling="no" marginwidth="0" marginheight="0" allowtransparency="true" src="https://www.ashesh.com.np/linknepali-unicode3.php?api=1531x0m411">
-            </iframe><br><span id="api_based"  style="color:gray; font-size:8px; text-align:left">© <a href="https://www.ashesh.com.np/nepali-unicode.php" title="Nepali unicode" target="_top" style="text-decoration:none; color:gray;">Nepali Unicode</a></span>
-            <textarea name="text1" id="text1" id="text1" ></textarea>
+          <textarea name="text1" id="text1" id="text1"  onkeydown="console.log(document.getElementById('text1').value)"></textarea>
         </form>
-        
+        <input type="hidden" id="old_word">
+
     </div>
-    <div id='demo'></div>
-</body>
+  
+    <div class="suggestions1">
+      <div class="inside-suggestion">
+        <p style="color:rgb(14, 143, 113);margin-bottom: 0px; text-transform: uppercase;">Mistakes</p>
+       
+         <!-- <p style="background-color:#6de9ca;padding:1px;border-radius:7px;color:black;"> Suggestion1</p> -->
+        <div id="grid1">
+            
+            <div class="common1" >
+                    <div id='mistakes1'  >
+                    
+                    </div>
+                    <div id="gec">
+
+                    </div>
+            </div>
+            
+            
+            <div >
+              <p style="color:rgb(14, 143, 113);margin-bottom: 0px; text-transform: uppercase;">Suggestion</p>
+       
+                  <div id="mistakes" class="common1" >            
+
+                  </div>
+                <div>
+                  
+                </div>
+            </div>
+      </div>
+    </div> 
+  </div>   
+  </body>
 </html>
