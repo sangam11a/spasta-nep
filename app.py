@@ -1,8 +1,9 @@
 from urllib import request
 from flask import Flask,render_template,url_for,jsonify,request
 # from flask_wtf import FlaskForm
-from wtforms import TextAreaField,SubmitField
+# from wtforms import TextAreaField,SubmitField
 import pandas as pd
+import re
 import time
 app=Flask(__name__)
 #Spell Checker's code
@@ -423,7 +424,7 @@ def pos_tag(texts):
 
 
 def remove_pun(my_str):
-  punctuations = '''!()[]{};:'"\,<>./?@#$%^&*_~'''
+  punctuations = '''!()[]\{\};:'"\,<>./?@#$%^&*_~'''
   no_punct = ""
   for char in my_str:
     if char not in punctuations:
@@ -564,7 +565,7 @@ def return_verb_mask(tagging):
     text23+="।"
     # print(text23)
     rrr=fill_mask(text23)
-    temp111=[ab["token_str"].strip() for ab in rrr]
+    temp111=[ab["token_str"] for ab in rrr]  #removed strip
       # return mask,line_no
     dict_temp[(count,count2,mask.strip())]=temp111       
     # print(temp111,mask.strip() in temp111)#nov 11
@@ -579,7 +580,66 @@ del all_files_list
 stop1=time.time()
 print(start,stop1," Time elapsed is : ",stop1-start)
 all_variables = dir()
+
+
+###Yo chai 14th Feb ma add garya
+
+def return_probab(pos_list):
+  global temp_A
+  probab=[]
+  # dict_probab={}
+  # print(type(pos_list))
+  for temp_pos_list in pos_list:
+    temp_pos_list.insert(0,"--s--")
+    temp_pos_list.append("YF")
+    # dict_probab={}
+    # print("temp_pos ",temp_pos_list)
+    # temp_probab=A_sub.loc[]
   
+  for y in pos_list:
+    dict_probab={}
+    for x in range(len(y)-1):
+      key1=(y[x],y[x+1])
+      # print(freqs[key1])
+      temp_calc=temp_A.loc[y[x],y[x+1]]#A_sub.iloc[list22.index(y[x]),list22.index(y[x+1])]
+      # print(y[x],",",y[x+1],temp_calc,"   ",A_sub.iloc[list22.index(y[x]),list22.index(y[x+1])]," ",A_sub.iloc[list22.index(y[x]),list22.index(y[x+1])]==temp_calc)
+      dict_probab[key1]=temp_calc
+    # print(temp_calc)
+    probab.append(dict_probab)#one indent done plz undo
+  # print(dict_probab)
+  return probab
+
+def check_prob(text21):
+  # text21="उसले मलाई झेले को छ |नेपालको निकासी व्यापार मा ऊनी गलैंचाले चालू आर्थिक वर्षमा पनि पहिलो स्थान ओगटेको छ |"#"नेपालको निकासी व्यापार मा ऊनी गलैंचाले चालू आर्थिक वर्षमा पनि पहिलो स्थान ओगटेको छ |  "#"जन रातो स्याउ जान्छ|"##"नेपालको निकासी व्यापारमा ऊनी गलैंचाले चालू आर्थिक वर्षमा पनि पहिलो स्थान ओगटेको छ ।"
+  tagging=pos_tag(text21)
+  get_pos=[]
+  print("Tagging",tagging)
+  for i in tagging:  
+    get_pos.append(sentence_checker(i))
+  print(get_pos,type(get_pos))
+  dict2=return_probab(get_pos)
+  print(dict2)
+  for dict3 in dict2:
+    pr=1
+    count=10**(len(dict3)-2)
+    most_probable_error=[]
+    count=0
+    for _ in dict3.values():
+      if _<=0.01:
+        most_probable_error.append(count)
+        print(_)
+      count+=1
+    print(most_probable_error)
+    for i in dict3.values():
+      # count*=10
+      pr*=i
+    print(pr,pr*count)
+    if pr<1.3398807621274485e-18:
+      print("incorrect")
+    else:
+      print("correct")
+
+####yaha samma
 
 @app.route("/")
 def index():        
@@ -649,9 +709,12 @@ def testing():
           # print(temp33)#yo 11th ma milako
         # print(stem1)#yo 11th ma milako
         tagging=pos_tag(text21)
-        
+        ##14th Feb
+        probab1=check_prob(text21)
+        print(probab1)
+        ##14th Feb
         get_pos=[]
-        # print("Tagging",tagging)#yo 11th ma milako
+        print("Tagging",tagging)#yo 11th ma milako
         for i in tagging:  
             get_pos.append(sentence_checker(i))
         # print(get_pos,type(get_pos))
@@ -706,7 +769,7 @@ def testing():
         # for _ in range(len(list_temp)):
         #   pass
         # print(fill_mask(f"{text21} [MASK]"))
-        check_trigrams(text21)
+        # check_trigrams(text21) ##it's futuristic be ready for that
         return jsonify(temp33) #"त्रुटी  "+text22[0][1]+
 
 
